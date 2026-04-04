@@ -1,0 +1,45 @@
+{
+  "tweets": [
+    {
+      "id": "1",
+      "content": "Consistency is the only bridge between goals and accomplishment.",
+      "tags": ["motivation", "viral"],
+      "status": "queued",
+      "createdAt": "2026-04-04T20:00:00.000Z"
+    }
+  ],
+  "scheduled": [],
+  "userTokens": {},
+  "settings": {
+    "autoGenerate": true,
+    "lastGenerated": null
+  },
+  "influencers": [
+    { "name": "Lobistar", "handle": "john322226" },
+    { "name": "Dami Foreign", "handle": "DamiForeign" },
+    { "name": "Wizarab", "handle": "Wizarab" },
+    { "name": "Dr. Olufunmilayo", "handle": "DrOlufunmilayo" },
+    { "name": "David Hundeyin", "handle": "DavidHundeyin" },
+    { "name": "Daniel Regha", "handle": "DanielRegha" },
+    { "name": "Korty EO", "handle": "korty_eo" },
+    { "name": "Simi", "handle": "SympLySimi" },
+    { "name": "Burna Boy", "handle": "burnaboy" },
+    { "name": "Wizkid", "handle": "wizkidayo" },
+    { "name": "Tems", "handle": "temsbaby" },
+    { "name": "Asake", "handle": "asakemusik" },
+    { "name": "Fisayo Sushi", "handle": "FisayoSushi" },
+    { "name": "Linda Ikeji", "handle": "lindaikeji" },
+    { "name": "Instablog9ja", "handle": "instablog9ja" },
+    { "name": "Channels TV", "handle": "channelstv" },
+    { "name": "YabaLeftOnline", "handle": "yabaleftonline" },
+    { "name": "Postsubman", "handle": "Postsubman" },
+    { "name": "Olori Supergal", "handle": "OloriSupergal" },
+    { "name": "BellaNaija", "handle": "bellanaija" },
+    { "name": "Pulse Nigeria", "handle": "PulseNigeria247" },
+    { "name": "Punch Newspapers", "handle": "MobilePunch" },
+    { "name": "Vanguard News", "handle": "vanguardnews" },
+    { "name": "The Nation", "handle": "TheNationNews" },
+    { "name": "Daily Post Nigeria", "handle": "DailyPostNGR" }
+  ],
+  "replies": []
+}
