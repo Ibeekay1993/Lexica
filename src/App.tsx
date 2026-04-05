@@ -109,11 +109,24 @@ function App() {
 
   // Auth Listener (MASTER SYNC)
   useEffect(() => {
-    // Initial Session Check
-    api.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    // Safety Fallback: Stop loading after 5 seconds no matter what
+    const safetyTimer = setTimeout(() => {
       setIsLoading(false);
-    });
+    }, 5000);
+
+    // Initial Session Check
+    api.getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+      })
+      .catch(err => {
+        console.error('Session check failed:', err);
+        toast.error('Connection weak. Attempting fallback...');
+      })
+      .finally(() => {
+        setIsLoading(false);
+        clearTimeout(safetyTimer);
+      });
 
     // Real-Time Auth Listener (Auto-Refresh on login)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
