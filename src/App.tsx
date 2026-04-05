@@ -202,10 +202,16 @@ function App() {
   const handleCompleteConnect = async (handle: string) => {
     try {
       await api.connectTwitter(handle);
+      // Force a full refresh after DB sync
       const authStatus = await api.getAuthStatus();
       setTwitterUser(authStatus.user);
       setIsConnected(true);
       toast.success(`Identity @${handle} Connected! 🚀`);
+      
+      // Secondary Re-fetch for stats
+      setTimeout(() => {
+        handleRefresh();
+      }, 500);
     } catch (error) {
       toast.error('Identity sync failed. Try again.')
     }
@@ -303,7 +309,11 @@ function App() {
         onClose={() => setIsConnectModalOpen(false)}
         onConnect={handleCompleteConnect}
       />
-      <Header onRefresh={handleRefresh} onLogout={handleLogout} />
+      <Header 
+        onRefresh={handleRefresh} 
+        onLogout={handleLogout} 
+        isConnected={isConnected}
+      />
       
       <main className="container mx-auto px-4 py-6 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="flex justify-between items-center mb-6">

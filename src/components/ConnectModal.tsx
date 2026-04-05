@@ -73,9 +73,26 @@ export default function ConnectModal({ isOpen, onClose, onConnect }: ConnectModa
                   type="text"
                   required
                   autoFocus
-                  placeholder="IsrealAfolayan"
+                  placeholder="example_user"
                   value={handle}
-                  onChange={(e) => setHandle(e.target.value.replace('@', ''))}
+                  onChange={(e) => {
+                    let val = e.target.value.trim();
+                    // 20-Year Senior Normalization Logic
+                    try {
+                      if (val.includes('http')) {
+                        const url = new URL(val);
+                        val = url.pathname.split('/')[1] || val;
+                      }
+                      // Remove @ and Query params
+                      val = val.replace('@', '').split('?')[0];
+                      // Character Validation (X usernames: Alphanumeric + Underscore)
+                      val = val.replace(/[^a-zA-Z0-9_]/g, '');
+                    } catch (err) {
+                      // Fallback for non-URL strings
+                      val = val.replace(/[^a-zA-Z0-9_]/g, '');
+                    }
+                    setHandle(val);
+                  }}
                   className="w-full pl-10 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-[1.8rem] focus:outline-none focus:ring-4 focus:ring-blue-100 transition-all font-bold text-slate-800 text-lg shadow-inner"
                 />
                 
