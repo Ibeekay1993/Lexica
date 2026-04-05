@@ -153,21 +153,32 @@ export const api = {
     await api.updateSettings({ twitter_handle: null });
   },
 
-  // Cloud Content Engine (User-Specific)
+  // Cloud Content Engine (SaaS Locked)
   getTweets: async () => {
-    const { data } = await supabase
-      .from('tweets')
-      .select('*')
-      .order('created_at', { ascending: false })
-    
-    return (data || []).map((t: any) => ({
-      id: t.id,
-      content: t.content,
-      tags: t.tags || [],
-      status: t.status as 'queued' | 'draft' | 'posted',
-      createdAt: new Date(t.created_at),
-      tweetId: t.tweet_id
-    }))
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from('tweets')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return (data || []).map((t: any) => ({
+        id: t.id,
+        content: t.content,
+        tags: t.tags || [],
+        status: t.status as 'queued' | 'draft' | 'posted',
+        createdAt: new Date(t.created_at),
+        tweetId: t.tweet_id
+      }));
+    } catch (e) {
+      console.warn('Commander Queue Sync Error:', e);
+      return [];
+    }
   },
 
   addTweet: async (content: string, tags: string[]) => {

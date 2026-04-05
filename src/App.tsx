@@ -66,16 +66,19 @@ function App() {
 
   const handleRefresh = useCallback(async () => {
     try {
-      const statsData = await api.getStats();
       const tweetsData = await api.getTweets();
       const scheduledData = await api.getScheduledTweets();
       const authStatus = await api.getAuthStatus();
 
+      const totalCount = tweetsData.length;
+      const queuedCount = tweetsData.filter((t: any) => t.status === 'queued').length;
+      const postedCount = tweetsData.filter((t: any) => t.status === 'posted').length;
+
       setStats({
-        total: statsData.totalTweets,
-        queued: statsData.queuedCount,
-        posted: statsData.postedCount,
-        quotes: statsData.totalTweets 
+        total: totalCount,
+        queued: queuedCount,
+        posted: postedCount,
+        quotes: 0 
       });
       setTweets(tweetsData);
       setScheduledTweets(scheduledData);
