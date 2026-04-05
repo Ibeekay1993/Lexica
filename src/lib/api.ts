@@ -138,6 +138,11 @@ export const api = {
     return { success: !error }
   },
 
+  cancelScheduledTweet: async (id: string) => {
+    const { error } = await supabase.from('scheduled_tweets').delete().eq('id', id)
+    return { success: !error }
+  },
+
   // Influencer Tracking
   getInfluencers: async () => {
     const { data } = await supabase.from('influencers').select('*')
