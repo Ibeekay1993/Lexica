@@ -45,7 +45,17 @@ function App() {
   const [scheduledTweets, setScheduledTweets] = useState<ScheduledTweet[]>([])
   const [autoGenerate, setAutoGenerate] = useState(true)
   const [notifications, setNotifications] = useState(false)
-  const [countdown, setCountdown] = useState(3595)
+  // Calculate time until next full hour (top of the hour)
+  const getInitialCountdown = () => {
+    const now = new Date();
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+    const totalSecondsInHour = 3600;
+    const currentSeconds = (minutes * 60) + seconds;
+    return totalSecondsInHour - currentSeconds;
+  };
+
+  const [countdown, setCountdown] = useState(getInitialCountdown())
   const [stats, setStats] = useState({ total: 0, queued: 0, posted: 0, quotes: 0 })
 
   // Initial load
