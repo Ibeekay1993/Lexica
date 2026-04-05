@@ -290,6 +290,7 @@ function App() {
           user={twitterUser}
           onConnect={handleConnectTwitter}
           onDisconnect={handleDisconnectTwitter}
+          onRefresh={handleRefresh}
         />
         
         <StatsCards stats={stats} />

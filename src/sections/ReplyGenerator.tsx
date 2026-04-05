@@ -10,7 +10,7 @@ interface Influencer {
 interface Tweet {
   id: string
   text: string
-  created_at: string
+  createdAt: Date
 }
 
 export default function ReplyGenerator() {
@@ -113,7 +113,7 @@ export default function ReplyGenerator() {
                       >
                         <p className="text-sm text-slate-700 leading-relaxed mb-3">{tweet.text}</p>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-slate-400">{new Date(tweet.created_at).toLocaleString()}</span>
+                          <span className="text-xs text-slate-400">{tweet.createdAt.toLocaleString()}</span>
                           <div className="flex gap-2">
                             <button 
                               onClick={() => generateSuggestions(tweet, 'nigerian')}

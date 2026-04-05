@@ -1,4 +1,4 @@
-import { Twitter, Check, LogOut, AlertCircle } from 'lucide-react'
+import { Twitter, Check, LogOut, AlertCircle, RefreshCw } from 'lucide-react'
 import type { TwitterUser } from '../lib/api'
 
 interface TwitterConnectProps {
@@ -6,20 +6,21 @@ interface TwitterConnectProps {
   user: TwitterUser | null
   onConnect: () => void
   onDisconnect: () => void
+  onRefresh: () => void
 }
 
-export default function TwitterConnect({ isConnected, user, onConnect, onDisconnect }: TwitterConnectProps) {
+export default function TwitterConnect({ isConnected, user, onConnect, onDisconnect, onRefresh }: TwitterConnectProps) {
   if (isConnected && user) {
     return (
       <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-5 text-white shadow-lg mb-6 animate-fade-in">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="relative">
+            <div className="relative group overflow-hidden rounded-full">
               {user.profile_image_url ? (
                 <img 
                   src={user.profile_image_url} 
                   alt={user.name}
-                  className="w-14 h-14 rounded-full border-2 border-white/50"
+                  className="w-14 h-14 rounded-full border-2 border-white/50 group-hover:scale-110 transition-transform"
                 />
               ) : (
                 <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
@@ -31,23 +32,35 @@ export default function TwitterConnect({ isConnected, user, onConnect, onDisconn
               </div>
             </div>
             <div>
-              <h3 className="font-bold text-lg">@{user.username}</h3>
-              <p className="text-blue-100 text-sm">{user.name}</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-lg">@{user.username}</h3>
+                <span className="px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-bold tracking-tighter">VERIFIED HUB</span>
+              </div>
+              <p className="text-blue-100 text-sm tracking-tight">{user.name}</p>
               {user.public_metrics && (
-                <div className="flex gap-4 mt-1 text-xs text-blue-100">
-                  <span>{user.public_metrics.followers_count.toLocaleString()} followers</span>
-                  <span>{user.public_metrics.following_count.toLocaleString()} following</span>
+                <div className="flex gap-4 mt-1.5 text-xs text-white/90 font-bold">
+                  <span className="flex flex-col"><span className="text-sm">{user.public_metrics.followers_count.toLocaleString()}</span> <span className="text-[10px] opacity-60">FOLLOWERS</span></span>
+                  <span className="flex flex-col"><span className="text-sm">{user.public_metrics.following_count.toLocaleString()}</span> <span className="text-[10px] opacity-60">FOLLOWING</span></span>
                 </div>
               )}
             </div>
           </div>
-          <button
-            onClick={onDisconnect}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-sm font-medium"
-          >
-            <LogOut className="w-4 h-4" />
-            Disconnect
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onRefresh}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-xs font-bold border border-white/10 hover:border-white/30"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Sync Stats
+            </button>
+            <button
+              onClick={onDisconnect}
+              className="flex items-center gap-2 px-4 py-2 bg-red-400/20 hover:bg-red-400/40 rounded-xl transition-all text-xs font-bold border border-red-400/20 hover:border-red-400/40"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Logout
+            </button>
+          </div>
         </div>
       </div>
     )
