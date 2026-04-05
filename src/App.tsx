@@ -220,8 +220,9 @@ function App() {
       setTimeout(() => {
         handleRefresh();
       }, 500);
-    } catch (error) {
-      toast.error('Identity sync failed. Try again.')
+    } catch (error: any) {
+      console.error('CRITICAL SYNC ERROR:', error);
+      toast.error(`Identity sync failed: ${error.message || 'Cloud connection error'}`);
     }
   }
 

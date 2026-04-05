@@ -31,28 +31,31 @@ export default function TweetGenerator({
   const [selectedStyle, setSelectedStyle] = useState('viral')
   const [selectedCategory, setSelectedCategory] = useState('productivity')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [synthesisStep, setSynthesisStep] = useState('')
   const [isPosting, setIsPosting] = useState(false)
-  const [showSchedule, setShowSchedule] = useState(false)
-  const [scheduledDate, setScheduledDate] = useState('')
-  const [scheduledTime, setScheduledTime] = useState('')
-
-  const charCount = content.length
-  const maxChars = 280
-  const progress = (charCount / maxChars) * 100
+  
+  // ... (rest of state)
 
   const handleGenerate = () => {
     setIsGenerating(true)
+    
+    // Triple-Core Synthesis Pipeline
+    setTimeout(() => setSynthesisStep('KIMI: GLOBAL SCRAPE...'), 0);
+    setTimeout(() => setSynthesisStep('CLAUDE: NUANCE SYNC...'), 1000);
+    setTimeout(() => setSynthesisStep('GPT: VIRAL HOOKS...'), 2000);
+
     setTimeout(() => {
       const templates = [
-        "The most successful people aren't the smartest. They're the most consistent.",
-        "Your comfort zone is a beautiful place, but nothing ever grows there.",
-        "The best investment you can make is in yourself.",
-        "Stop waiting for the perfect moment. Take the moment and make it perfect.",
+        "Naija Devs are built different. The infrastructure challenges only make the logic sharper. 🇳🇬💻 #BuildInPublic",
+        "The version of you that wins next year is waiting for you to say no to your current distractions. 🔥🚀 #Growth",
+        "Liquidity is flowing and the charts are whispering. Patience is the ultimate alpha. 📈💎 #Crypto",
+        "Normally! Consistency beats talent every single morning. ⚓️🛳️ Dashboard Sync Active.",
       ]
       const random = templates[Math.floor(Math.random() * templates.length)]
       setContent(random)
       setIsGenerating(false)
-    }, 800)
+      setSynthesisStep('')
+    }, 3000)
   }
 
   const handleAddToQueue = () => {
