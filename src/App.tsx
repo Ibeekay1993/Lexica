@@ -11,7 +11,7 @@ import TwitterConnect from './sections/TwitterConnect'
 import ScheduledTweets from './sections/ScheduledTweets'
 import ReplyGenerator from './sections/ReplyGenerator'
 import Auth from './components/Auth'
-import { api, type TwitterUser } from './lib/api'
+import { api, type TwitterUser, supabase } from './lib/api'
 import { Toaster, toast } from 'sonner'
 
 export interface Tweet {
@@ -107,23 +107,30 @@ function App() {
     setCountdown(getInitialCountdown());
   };
 
-  // Auth Listener
+  // Auth Listener (MASTER SYNC)
   useEffect(() => {
+    // Initial Session Check
     api.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsLoading(false);
+    });
+
+    // Real-Time Auth Listener (Auto-Refresh on login)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
       setSession(session);
       if (session) {
          // Load Persistent Settings
-         api.getSettings().then(settings => {
-           if (settings) {
-             setAutoGenerate(settings.auto_generate);
-             setNotifications(settings.notifications);
-             setFrequency(settings.frequency);
-           }
-         });
+         const settings = await api.getSettings();
+         if (settings) {
+            setAutoGenerate(settings.auto_generate ?? true);
+            setNotifications(settings.notifications ?? false);
+            setFrequency(settings.frequency ?? 60);
+         }
          handleRefresh();
       }
-      setIsLoading(false);
     });
+
+    return () => subscription.unsubscribe();
   }, [handleRefresh]);
 
   // Countdown timer
