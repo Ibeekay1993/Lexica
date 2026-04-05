@@ -3,10 +3,6 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Supabase credentials missing in .env')
-}
-
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
 export interface TwitterUser {
@@ -23,59 +19,81 @@ export interface TwitterUser {
 }
 
 export const api = {
-  // Auth (Serverless Auto-Connect)
-  getAuthStatus: async () => {
-    try {
-      // Fetching live identity to ensure it is NOT static
-      const res = await fetch('https://unavatar.io/twitter/IsrealAfolayan?json=true');
-      const data = await res.json();
-      
-      return { 
-        connected: true, 
-        user: { 
-          id: 'user_isreal', 
-          name: data.name || 'Lighten⚡️', 
-          username: 'IsrealAfolayan',
-          profile_image_url: 'https://unavatar.io/twitter/IsrealAfolayan',
-          public_metrics: {
-            followers_count: data.followers || 1672,
-            following_count: data.following || 3574,
-            tweet_count: 5308,
-            listed_count: 12
-          }
-        } 
-      }
-    } catch (e) {
-      // Fallback
-      return { connected: true, user: { id: 'user_isreal', name: 'Lighten⚡️', username: 'IsrealAfolayan', profile_image_url: 'https://unavatar.io/twitter/IsrealAfolayan', public_metrics: { followers_count: 1672, following_count: 3574, tweet_count: 5308, listed_count: 12 } } }
-    }
+  // Auth & Multi-User Support
+  signUp: async (email: string, pass: string) => {
+    return await supabase.auth.signUp({ email, password: pass });
   },
 
-  connectTwitter: async () => {
-    // Simulated connection for serverless UI
-    return { authUrl: null, success: true }
+  signIn: async (email: string, pass: string) => {
+    return await supabase.auth.signInWithPassword({ email, password: pass });
+  },
+
+  signOut: async () => {
+    return await supabase.auth.signOut();
+  },
+
+  getSession: async () => {
+    return await supabase.auth.getSession();
+  },
+
+  // Persistent Settings
+  getSettings: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    
+    const { data } = await supabase.from('user_settings').select('*').eq('user_id', user.id).single();
+    return data;
+  },
+
+  updateSettings: async (updates: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    await supabase.from('user_settings').update(updates).eq('user_id', user.id);
+  },
+
+  // Real Identity Sync
+  getAuthStatus: async () => {
+     const settings = await api.getSettings();
+     if (!settings || !settings.twitter_handle) {
+        return { connected: false, user: null };
+     }
+
+     try {
+       const res = await fetch(`https://unavatar.io/twitter/${settings.twitter_handle}?json=true`);
+       const data = await res.json();
+       return {
+         connected: true,
+         user: {
+           id: settings.user_id,
+           name: data.display_name || data.name || settings.twitter_handle,
+           username: settings.twitter_handle,
+           profile_image_url: `https://unavatar.io/twitter/${settings.twitter_handle}`,
+           public_metrics: {
+             followers_count: data.followers_count || 0,
+             following_count: data.following_count || 0,
+             tweet_count: data.statuses_count || 0,
+             listed_count: 0
+           }
+         }
+       };
+     } catch (e) {
+       return { connected: true, user: { name: settings.twitter_handle, username: settings.twitter_handle } };
+     }
+  },
+
+  connectTwitter: async (handle: string) => {
+    // In a real OAuth flow we'd use X's api, but for this serverless version
+    // we save the handle and sync the unavatar metrics to "Connect".
+    await api.updateSettings({ twitter_handle: handle.replace('@', ''), last_sync: new Date() });
+    return { success: true };
   },
 
   disconnect: async () => {
-    return { success: true }
+    await api.updateSettings({ twitter_handle: null });
   },
 
-  // Stats (Using direct Supabase queries)
-  getStats: async () => {
-    const { data: tweets } = await supabase.from('tweets').select('status')
-    const { count: influencersCount } = await supabase.from('influencers').select('*', { count: 'exact', head: true })
-    
-    const postedCount = tweets?.filter((t: any) => t.status === 'posted').length || 0
-    const queuedCount = tweets?.filter((t: any) => t.status === 'queued').length || 0
-    
-    return {
-      totalTweets: (tweets?.length || 0),
-      postedCount,
-      queuedCount,
-      influencersCount: influencersCount || 0,
-    }
-  },
-
+  // Cloud Content Engine (User-Specific)
   getTweets: async () => {
     const { data } = await supabase
       .from('tweets')
@@ -87,17 +105,26 @@ export const api = {
       content: t.content,
       tags: t.tags || [],
       status: t.status as 'queued' | 'draft' | 'posted',
-      createdAt: new Date(t.created_at)
+      createdAt: new Date(t.created_at),
+      tweetId: t.tweet_id
     }))
   },
 
   addTweet: async (content: string, tags: string[]) => {
+    const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase.from('tweets').insert([{
       content,
       tags,
-      status: 'queued'
+      status: 'queued',
+      user_id: user?.id
     }]).select()
     return { success: !error, data: data?.[0] }
+  },
+
+  postTweet: async (content: string) => {
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(content)}`
+    window.open(url, '_blank')
+    return { success: true }
   },
 
   deleteTweet: async (id: string) => {
@@ -105,37 +132,38 @@ export const api = {
     return { success: !error }
   },
 
-  postTweet: async (text: string) => {
-    // Open Twitter intent directly (serverless)
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`
-    window.open(url, '_blank')
-    
-    // Mark as posted or add new entry
-    await supabase.from('tweets').insert([{ 
-      content: text, 
-      status: 'posted' 
-    }])
-    return { success: true }
+  getStats: async () => {
+    const { data: tweets } = await supabase.from('tweets').select('status')
+    return {
+      totalTweets: (tweets?.length || 0),
+      queuedCount: tweets?.filter(t => t.status === 'queued').length || 0,
+      postedCount: tweets?.filter(t => t.status === 'posted').length || 0
+    }
   },
 
-  // Scheduling
+  scheduleTweet: async (content: string, scheduledAt: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase.from('scheduled_tweets').insert([{
+      text: content,
+      scheduled_at: scheduledAt,
+      status: 'pending',
+      user_id: user?.id
+    }]).select()
+    return { success: !error, data: data?.[0] }
+  },
+
   getScheduledTweets: async () => {
-    const { data } = await supabase.from('scheduled_tweets').select('*').order('scheduled_at', { ascending: true })
+    const { data } = await supabase
+      .from('scheduled_tweets')
+      .select('*')
+      .order('scheduled_at', { ascending: true })
+    
     return (data || []).map((t: any) => ({
       id: t.id,
-      text: t.content,
+      text: t.text,
       scheduledAt: t.scheduled_at,
       status: t.status
     }))
-  },
-
-  scheduleTweet: async (text: string, scheduledAt: string) => {
-    const { error } = await supabase.from('scheduled_tweets').insert([{
-      content: text,
-      scheduled_at: scheduledAt,
-      status: 'pending'
-    }])
-    return { success: !error }
   },
 
   cancelScheduledTweet: async (id: string) => {
@@ -143,13 +171,13 @@ export const api = {
     return { success: !error }
   },
 
-  // Influencer Tracking
+  // Influencer Tracking (Always provides default list)
   getInfluencers: async () => {
     try {
       const { data } = await supabase.from('influencers').select('*');
       if (data && data.length > 0) return data;
       
-      // Fallback: The "Global Impression Fleet" (20+ Top Nigerians & Global Creators)
+      // Fallback: The "Global Impression Fleet"
       return [
         { id: '1', name: 'Elon Musk', handle: 'elonmusk', niche: 'Technology' },
         { id: '2', name: 'Fabrizio Romano', handle: 'FabrizioRomano', niche: 'Sports' },
@@ -160,46 +188,22 @@ export const api = {
         { id: '7', name: 'Don Jazzy', handle: 'DONJAZZY', niche: 'Naija Tech/Ent' },
         { id: '8', name: 'MrMacaroni', handle: 'mrmacaronii', niche: 'Comedy' },
         { id: '9', name: 'Tunde Ednut', handle: 'TundeEdnut', niche: 'Entertainment' },
-        { id: '10', name: 'Victor Osimhen', handle: 'victorosimhen9', niche: 'Sports' },
-        { id: '11', name: 'Asisat Oshoala', handle: 'asisatoshoala', niche: 'Sports' },
-        { id: '12', name: 'Mark Zuckerberg', handle: 'finkd', niche: 'Tech' },
-        { id: '13', name: 'Naval', handle: 'naval', niche: 'Motivation' },
-        { id: '14', name: 'Paul Graham', handle: 'paulg', niche: 'Startups' },
-        { id: '15', name: 'Sahil Bloom', handle: 'SahilBloom', niche: 'Growth' },
-        { id: '16', name: 'Justin Welsh', handle: 'thejustinwelsh', niche: 'Solopreneur' },
-        { id: '17', name: 'Fisayo Fosudo', handle: 'FisayoFosudo', niche: 'Naija Tech' },
-        { id: '18', name: 'Rinu Oduala', handle: 'SavvyRinu', niche: 'Politics' },
-        { id: '19', name: 'Aproko Doctor', handle: 'aproko_doctor', niche: 'Health' },
-        { id: '20', name: 'Arise News', handle: 'ARISEtv', niche: 'News' }
+        { id: '10', name: 'Victor Osimhen', handle: 'victorosimhen9', niche: 'Sports' }
       ];
     } catch (e) {
        return [];
     }
   },
 
-  // Note: Influencer tweets require a Twitter API key.
-  // In this serverless version, we provide high-quality mock data for the UI.
   getInfluencerTweets: async (handle: string) => {
     const mocks: Record<string, any[]> = {
       'elonmusk': [
         { id: 'm1', text: "Mars is looking more possible every day. Humanity must become multi-planetary. 🚀", created_at: new Date().toISOString() },
         { id: 'm2', text: "X is the future of everything. Decentralized truth is the only way.", created_at: new Date(Date.now() - 3600000).toISOString() }
       ],
-      'FabrizioRomano': [
-        { id: 'f1', text: "HERE WE GO! Dealing agreed. Personal terms fine. Medicals soon. 🚨⚽️", created_at: new Date().toISOString() },
-        { id: 'f2', text: "Nothing changed yet. Clubs still talking. It is a work in progress. ⚪️🔵", created_at: new Date(Date.now() - 3600000).toISOString() }
-      ],
       'davido': [
         { id: 'd1', text: "Naija! The energy is unmatched. New music loading... 🇳🇬🥂", created_at: new Date().toISOString() },
         { id: 'd2', text: "Always stay focused. God is the greatest. 🙏💎", created_at: new Date(Date.now() - 7200000).toISOString() }
-      ],
-      'Olamide': [
-        { id: 'o1', text: "Normally! Work hard, stay humble. Success is the only language. ⚓️", created_at: new Date().toISOString() },
-        { id: 'o2', text: "New street anthem soon. Get ready. 🥂🍻", created_at: new Date(Date.now() - 7200000).toISOString() }
-      ],
-      'DONJAZZY': [
-        { id: 'j1', text: "Watin concern me? I just want to see everybody win! 🇳🇬⚓️", created_at: new Date().toISOString() },
-        { id: 'j2', text: "Tech is the new oil. No cap. Invest in yourselves. 🚀💻", created_at: new Date(Date.now() - 3600000).toISOString() }
       ]
     }
     return (mocks[handle] || [
@@ -213,7 +217,6 @@ export const api = {
   },
 
   generateReply: async (tweetText: string, tone = 'agree') => {
-    console.log('Generating reply for:', tweetText.slice(0, 50))
     const templates: Record<string, string[]> = {
       agree: ["Exactly! 💯", "Spot on observation.", "True! Consistency wins."],
       insight: ["Great point. I'd add that timing is key.", "Interesting take!", "Powerful insight."],
