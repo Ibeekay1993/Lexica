@@ -19,12 +19,12 @@ export default function Header({ onRefresh, onLogout, isConnected }: HeaderProps
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-400 rounded-full animate-pulse" />
             </div>
             <div>
-              <h1 className="text-xl font-bold gradient-text leading-none mb-1">
-                TweetForge Pro
+              <h1 className="text-xl font-black text-slate-800 tracking-tighter italic leading-none mb-1 uppercase">
+                KIMI AI COMMANDER
               </h1>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Zap className="w-3 h-3 text-amber-500" />
-                Live Cloud Automation Engine
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-1.5 opacity-70">
+                <Zap className="w-3 h-3 text-amber-500 fill-amber-500/20" />
+                DEEP CONTEXT CLOUD ENGINE
               </p>
             </div>
           </div>

@@ -166,12 +166,18 @@ function App() {
       setCountdown((prev: number) => {
         if (prev > 1) return prev - 1;
         
+        // Zero-Zero Engagement: KIMI AI AWAKENS
+        toast.info('Kimi AI Station: Initiating Deep Cloud Scrape... 🛰️');
         handleRefresh().then((freshTweets) => {
-          toast.success('System Waking Up: Cloud Sync Complete! 🚀');
-          const firstQueued = freshTweets.find((t: Tweet) => t.status === 'queued');
+          const firstQueued = freshTweets?.find((t: Tweet) => t.status === 'queued');
           if (firstQueued) {
              const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(firstQueued.content)}`;
              window.open(url, '_blank');
+             toast.success('Kimi AI: Intent Prepared! Finalize on X. 🚀');
+          } else {
+             // If nothing is ready, Kimi generates new context
+             toast.info('Kimi AI: Cache Empty. Generating Deep Context...');
+             handleGenerateNow();
           }
         });
         
