@@ -41,7 +41,7 @@ export const api = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
     
-    const { data } = await supabase.from('user_settings').select('*').eq('user_id', user.id).single();
+    const { data } = await supabase.from('user_settings').select('*').eq('user_id', user.id).maybeSingle();
     return data;
   },
 
@@ -49,7 +49,14 @@ export const api = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     
-    await supabase.from('user_settings').update(updates).eq('user_id', user.id);
+    // Explicitly create if missing, update if exists
+    const { data: existing } = await supabase.from('user_settings').select('user_id').eq('user_id', user.id).maybeSingle();
+    
+    if (existing) {
+       await supabase.from('user_settings').update(updates).eq('user_id', user.id);
+    } else {
+       await supabase.from('user_settings').insert({ user_id: user.id, ...updates });
+    }
   },
 
   // Real Identity Sync
