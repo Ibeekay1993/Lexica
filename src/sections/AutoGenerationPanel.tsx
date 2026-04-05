@@ -1,4 +1,4 @@
-import { Sparkles, Bell, Clock, Play, Lightbulb, Zap } from 'lucide-react'
+import { Sparkles, Bell, Clock, Lightbulb, Zap } from 'lucide-react'
 import { Switch } from '../components/ui/switch'
 
 interface AutoGenerationPanelProps {

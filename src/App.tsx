@@ -308,6 +308,8 @@ function App() {
                 onNotificationsChange={setNotifications}
                 countdown={formatTime(countdown)}
                 onGenerateNow={handleGenerateNow}
+                frequency={frequency}
+                onFrequencyChange={setFrequency}
               />
               
               <TweetGenerator 
