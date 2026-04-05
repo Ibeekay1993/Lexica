@@ -58,6 +58,12 @@ function App() {
   }, [frequency]);
 
   const [countdown, setCountdown] = useState(getInitialCountdown())
+  
+  // IMMEDIATELY reset timer when frequency changes
+  useEffect(() => {
+    setCountdown(getInitialCountdown());
+  }, [frequency, getInitialCountdown]);
+
   const [stats, setStats] = useState({ total: 0, queued: 0, posted: 0, quotes: 0 })
 
   const handleRefresh = useCallback(async () => {
