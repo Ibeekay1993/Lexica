@@ -13,7 +13,6 @@ import ReplyGenerator from './sections/ReplyGenerator'
 import Auth from './components/Auth'
 import { api, type TwitterUser } from './lib/api'
 import { Toaster, toast } from 'sonner'
-import { SupabaseClient } from '@supabase/supabase-js'
 
 export interface Tweet {
   id: string

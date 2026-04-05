@@ -65,7 +65,7 @@ export const api = {
        return {
          connected: true,
          user: {
-           id: settings.user_id,
+           id: settings.user_id || 'unknown',
            name: data.display_name || data.name || settings.twitter_handle,
            username: settings.twitter_handle,
            profile_image_url: `https://unavatar.io/twitter/${settings.twitter_handle}`,
@@ -76,9 +76,16 @@ export const api = {
              listed_count: 0
            }
          }
-       };
+       } as { connected: boolean, user: TwitterUser };
      } catch (e) {
-       return { connected: true, user: { name: settings.twitter_handle, username: settings.twitter_handle } };
+       return { 
+         connected: true, 
+         user: { 
+           id: settings.user_id || 'unknown',
+           name: settings.twitter_handle, 
+           username: settings.twitter_handle 
+         } 
+       } as { connected: boolean, user: TwitterUser };
      }
   },
 
@@ -134,10 +141,11 @@ export const api = {
 
   getStats: async () => {
     const { data: tweets } = await supabase.from('tweets').select('status')
+    const list = (tweets || []) as { status: string }[];
     return {
-      totalTweets: (tweets?.length || 0),
-      queuedCount: tweets?.filter(t => t.status === 'queued').length || 0,
-      postedCount: tweets?.filter(t => t.status === 'posted').length || 0
+      totalTweets: list.length,
+      queuedCount: list.filter(t => t.status === 'queued').length,
+      postedCount: list.filter(t => t.status === 'posted').length
     }
   },
 
@@ -216,7 +224,7 @@ export const api = {
     }))
   },
 
-  generateReply: async (tweetText: string, tone = 'agree') => {
+  generateReply: async (_tweetText: string, tone = 'agree') => {
     const templates: Record<string, string[]> = {
       agree: ["Exactly! 💯", "Spot on observation.", "True! Consistency wins."],
       insight: ["Great point. I'd add that timing is key.", "Interesting take!", "Powerful insight."],

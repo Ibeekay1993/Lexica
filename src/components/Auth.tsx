@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Rocket, Mail, Lock, User, AlertCircle, ArrowRight } from 'lucide-react'
+import { Rocket, Mail, Lock, User, ArrowRight } from 'lucide-react'
 import { api } from '../lib/api'
 import { toast } from 'sonner'
 
