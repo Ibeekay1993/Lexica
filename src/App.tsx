@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 import Header from './sections/Header'
 import StatsCards from './sections/StatsCards'
@@ -45,40 +45,44 @@ function App() {
   const [scheduledTweets, setScheduledTweets] = useState<ScheduledTweet[]>([])
   const [autoGenerate, setAutoGenerate] = useState(true)
   const [notifications, setNotifications] = useState(false)
-  // Calculate time until next full hour (top of the hour)
-  const getInitialCountdown = () => {
+  const [frequency, setFrequency] = useState(60) // 15, 30, 60 minutes
+  
+  // Calculate time until next window based on frequency
+  const getInitialCountdown = useCallback(() => {
     const now = new Date();
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
-    const totalSecondsInHour = 3600;
-    const currentSeconds = (minutes * 60) + seconds;
-    return totalSecondsInHour - currentSeconds;
-  };
+    const totalSecsElapsed = (minutes * 60) + seconds;
+    const freqSecs = frequency * 60;
+    return freqSecs - (totalSecsElapsed % freqSecs);
+  }, [frequency]);
 
   const [countdown, setCountdown] = useState(getInitialCountdown())
   const [stats, setStats] = useState({ total: 0, queued: 0, posted: 0, quotes: 0 })
 
+  const handleRefresh = useCallback(async () => {
+    try {
+      const statsData = await api.getStats();
+      const tweetsData = await api.getTweets();
+      const scheduledData = await api.getScheduledTweets();
+      
+      setStats({
+        total: statsData.totalTweets,
+        queued: statsData.queuedCount,
+        posted: statsData.postedCount,
+        quotes: statsData.totalTweets 
+      });
+      setTweets(tweetsData);
+      setScheduledTweets(scheduledData);
+      return tweetsData;
+    } catch (e) {
+      console.error('Failed to sync with cloud', e);
+      return [];
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const statsData = await api.getStats();
-        const tweetsData = await api.getTweets();
-        const scheduledData = await api.getScheduledTweets();
-        
-        setStats({
-          total: statsData.totalTweets,
-          queued: statsData.queuedCount,
-          posted: statsData.postedCount,
-          quotes: quoteTweets.length
-        });
-        setTweets(tweetsData);
-        setScheduledTweets(scheduledData);
-      } catch (e) {
-        console.error('Failed to fetch stats/tweets', e);
-      }
-    };
-
     const checkAuthStatus = async () => {
       try {
         const status = await api.getAuthStatus();
@@ -92,43 +96,38 @@ function App() {
       setIsLoading(false);
     };
 
-    fetchData();
+    handleRefresh();
     checkAuthStatus();
     
     // Refresh data every 30s
-    const interval = setInterval(fetchData, 30000);
+    const interval = setInterval(handleRefresh, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [handleRefresh]);
 
   // Countdown timer
   useEffect(() => {
     if (!autoGenerate) return
     const timer = setInterval(() => {
       setCountdown((prev: number) => {
-        if (prev > 0) return prev - 1;
+        if (prev > 1) return prev - 1;
         
-        // When countdown hits 0 (every hour)
-        api.getTweets().then(newTweets => {
-          if (newTweets.length > tweets.length) {
-            setTweets(newTweets);
-            if (notifications) {
-              if (Notification.permission === 'granted') {
-                new Notification('TweetForge Pro', {
-                  body: 'A new tweet has been auto-generated and is ready to post! 🚀',
-                  icon: '/favicon.ico'
-                });
-              } else {
-                toast.success('New tweet auto-generated!');
-              }
-            }
+        // When countdown hits 0
+        handleRefresh().then((freshTweets) => {
+          toast.success('System Waking Up: Cloud Sync Complete! 🚀');
+          
+          // Auto-open the most recent queued tweet intent
+          const firstQueued = freshTweets.find((t: Tweet) => t.status === 'queued');
+          if (firstQueued) {
+             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(firstQueued.content)}`;
+             window.open(url, '_blank');
           }
-        }).catch(console.error);
+        });
         
-        return 3599;
+        return getInitialCountdown();
       });
     }, 1000)
     return () => clearInterval(timer)
-  }, [autoGenerate, notifications, tweets.length])
+  }, [autoGenerate, handleRefresh, getInitialCountdown]);
 
   // Request notifications permission
   useEffect(() => {
@@ -148,6 +147,11 @@ function App() {
       const data = await api.connectTwitter()
       if (data.authUrl) {
         window.location.href = data.authUrl
+      } else {
+        const status = await api.getAuthStatus();
+        setTwitterUser(status.user);
+        setIsConnected(true);
+        toast.success('X Account Connected!');
       }
     } catch (error) {
       toast.error('Failed to initiate Twitter connection.')
@@ -174,9 +178,8 @@ function App() {
     try {
       const result = await api.postTweet(content)
       if (result.success) {
-        toast.success('Tweet posted successfully!')
-        const updated = await api.getTweets()
-        setTweets(updated)
+        toast.success('Opening Twitter intent...')
+        setTimeout(handleRefresh, 2000)
         return true
       }
     } catch (error) {
@@ -195,8 +198,7 @@ function App() {
       const result = await api.scheduleTweet(content, scheduledAt.toISOString())
       if (result.success) {
         toast.success('Tweet scheduled!')
-        const scheduled = await api.getScheduledTweets()
-        setScheduledTweets(scheduled)
+        handleRefresh()
         return true
       }
     } catch (error) {
@@ -209,17 +211,8 @@ function App() {
     try {
       const result = await api.addTweet(content, tags)
       if (result.success) {
-        toast.success('Added to queue')
-        const updated = await api.getTweets()
-        setTweets(updated)
-        
-        // Refresh stats
-        const statsData = await api.getStats()
-        setStats(prev => ({
-          ...prev,
-          total: statsData.totalTweets,
-          queued: statsData.queuedCount
-        }))
+        toast.success('Saved to Cloud Queue')
+        handleRefresh()
       }
     } catch (e) {
       toast.error('Failed to add tweet')
@@ -230,44 +223,46 @@ function App() {
     try {
       const result = await api.deleteTweet(id)
       if (result.success) {
-        setTweets(tweets.filter((t: Tweet) => t.id !== id))
+        handleRefresh()
         toast.info('Removed from queue')
-        
-        // Refresh stats
-        const statsData = await api.getStats()
-        setStats(prev => ({
-          ...prev,
-          total: statsData.totalTweets,
-          queued: statsData.queuedCount
-        }))
       }
     } catch (e) {
       toast.error('Failed to delete tweet')
     }
   }
 
-  const handleAddQuoteTweet = (url: string, comment: string) => {
-    const newQuote: QuoteTweet = {
-      id: Date.now().toString(),
-      url,
-      comment,
-    }
-    setQuoteTweets([...quoteTweets, newQuote])
-    toast.success('Quote planned')
-  }
-
   const handleGenerateNow = async () => {
-    toast.loading('Generating ideas...')
-    const templates = [
-      { content: "The secret to success? Consistency beats intensity. 🔥", tags: ['viral', 'motivation'] },
-      { content: "What's one skill you're learning this month? 📚", tags: ['question', 'growth'] },
-      { content: "Remote work isn't the future. Async work is.", tags: ['opinion', 'work'] },
-      { content: "Your network is your net worth. Build it intentionally. 🤝", tags: ['viral', 'networking'] },
+    toast.loading('AI is crafting viral hooks...')
+    const library = [
+      { content: "Normally! Consistency is the only bridge between Lagos and London. 🇳🇬🥂", tags: ['viral', 'motivation'] },
+      { content: "What's the one skill you're learning today that pays off in 5 years? 📚🧠", tags: ['question', 'growth'] },
+      { content: "Remote work is just the beginning. Async culture is where the real wealth is. 🚀", tags: ['opinion', 'technology'] },
+      { content: "Your network isn't just people you know. It's people who trust you. 🤝", tags: ['viral', 'entrepreneurship'] },
+      { content: "The best time to start was yesterday. The second best time is NOW. 🔥", tags: ['motivation', 'viral'] },
+      { content: "Normally! Tech is the new oil. No cap. 🇳🇬⚓️", tags: ['viral', 'technology'] },
+      { content: "POV: You finally stopped trading time for money. 📈🏆", tags: ['opinion', 'entrepreneurship'] },
+      { content: "Why do we overcomplicate success? It's just input vs output. 🧠", tags: ['question', 'productivity'] }
     ]
-    const random = templates[Math.floor(Math.random() * templates.length)]
+    const random = library[Math.floor(Math.random() * library.length)]
     await handleAddTweet(random.content, random.tags)
     toast.dismiss()
-    toast.success('New tweet ready!')
+    toast.success('Generated and Saved to Cloud! 🚀')
+  }
+
+  const handleGenerate10 = async () => {
+    toast.loading('Mass-Generating 10 Viral Concepts...');
+    for(let i=0; i<10; i++) {
+       const library = [
+        { content: "Consistency over intensity. Always.", tags: ['viral'] },
+        { content: "Normally! If you want to go fast, go alone. 🇳🇬", tags: ['motivation'] },
+        { content: "Twitter is the new town square.", tags: ['opinion'] }
+       ];
+       const random = library[Math.floor(Math.random() * library.length)];
+       await api.addTweet(random.content, random.tags);
+    }
+    handleRefresh();
+    toast.dismiss();
+    toast.success('10 Content Pieces Added! 🛡️');
   }
 
   if (isLoading) {
@@ -284,7 +279,10 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/10 to-purple-50/10 dark:from-slate-900 dark:to-slate-800 transition-colors duration-500">
       <Toaster position="top-right" richColors />
-      <Header />
+      <Header onRefresh={() => {
+        handleRefresh();
+        toast.info('Cloud Sync: In Progress...', { duration: 1000 });
+      }} />
       
       <main className="container mx-auto px-4 py-6 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700">
         <TwitterConnect 
@@ -331,10 +329,15 @@ function App() {
                 onDeleteTweet={handleDeleteTweet}
                 onPostTweet={handlePostTweet}
                 isConnected={isConnected}
+                onGenerate10={handleGenerate10}
               />
               <QuoteTweetPlanner
                 quotes={quoteTweets}
-                onAddQuote={handleAddQuoteTweet}
+                onAddQuote={(url, comment) => {
+                  const newQuote: QuoteTweet = { id: Date.now().toString(), url, comment };
+                  setQuoteTweets([...quoteTweets, newQuote]);
+                  toast.success('Quote planned');
+                }}
               />
             </div>
           </div>

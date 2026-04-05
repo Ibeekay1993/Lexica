@@ -21,6 +21,7 @@ interface ContentQueueProps {
   onDeleteTweet: (id: string) => void
   onPostTweet?: (content: string) => Promise<boolean>
   isConnected?: boolean
+  onGenerate10?: () => void
 }
 
 type FilterStatus = 'all' | 'queued' | 'draft' | 'posted'
@@ -164,7 +165,8 @@ export default function ContentQueue({
   tweets, 
   onDeleteTweet,
   onPostTweet,
-  isConnected = false
+  isConnected = false,
+  onGenerate10
 }: ContentQueueProps) {
   const [filter, setFilter] = useState<FilterStatus>('all')
   
@@ -198,9 +200,19 @@ export default function ContentQueue({
             <p className="text-xs text-muted-foreground">{tweets.length} tweets ready</p>
           </div>
         </div>
-        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">
-          {filteredTweets.length} shown
-        </span>
+        
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onGenerate10}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors border border-blue-100"
+          >
+            <Flame className="w-3.5 h-3.5" />
+            Generate 10
+          </button>
+          <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">
+            {filteredTweets.length} shown
+          </span>
+        </div>
       </div>
       
       <div className="px-5 py-3 border-b border-slate-100 flex gap-1 overflow-x-auto">
