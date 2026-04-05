@@ -11,6 +11,7 @@ import TwitterConnect from './sections/TwitterConnect'
 import ScheduledTweets from './sections/ScheduledTweets'
 import ReplyGenerator from './sections/ReplyGenerator'
 import Auth from './components/Auth'
+import ConnectModal from './components/ConnectModal'
 import { api, type TwitterUser, supabase } from './lib/api'
 import { Toaster, toast } from 'sonner'
 
@@ -39,6 +40,7 @@ export interface ScheduledTweet {
 function App() {
   const [session, setSession] = useState<any>(null)
   const [activeTab, setActiveTab] = useState('tweets')
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
   const [twitterUser, setTwitterUser] = useState<TwitterUser | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -174,18 +176,19 @@ function App() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  const handleConnectTwitter = async () => {
-    const handle = window.prompt("Enter your X @Username to connect Identity:");
-    if (!handle) return;
-    
+  const handleConnectTwitter = () => {
+    setIsConnectModalOpen(true)
+  }
+
+  const handleCompleteConnect = async (handle: string) => {
     try {
       await api.connectTwitter(handle);
       const authStatus = await api.getAuthStatus();
       setTwitterUser(authStatus.user);
       setIsConnected(true);
-      toast.success('X Identity Connected!');
+      toast.success(`Identity @${handle} Connected! 🚀`);
     } catch (error) {
-      toast.error('Connection failed.')
+      toast.error('Identity sync failed. Try again.')
     }
   }
 
@@ -276,6 +279,11 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/10 to-purple-50/10 dark:from-slate-900 dark:to-slate-800">
       <Toaster position="top-right" richColors />
+      <ConnectModal 
+        isOpen={isConnectModalOpen}
+        onClose={() => setIsConnectModalOpen(false)}
+        onConnect={handleCompleteConnect}
+      />
       <Header onRefresh={handleRefresh} />
       
       <main className="container mx-auto px-4 py-6 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700">
