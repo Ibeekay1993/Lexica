@@ -148,6 +148,17 @@ function App() {
     return () => subscription.unsubscribe();
   }, [handleRefresh]);
 
+  // Auto-Open Connect Modal for new commanders
+  useEffect(() => {
+    if (session && !twitterUser && !isLoading && !isConnectModalOpen) {
+       // Only auto-open if we've checked everything and they still have no handle
+       const timer = setTimeout(() => {
+         setIsConnectModalOpen(true);
+       }, 1000);
+       return () => clearTimeout(timer);
+    }
+  }, [session, twitterUser, isLoading]);
+
   // Countdown timer
   useEffect(() => {
     if (!autoGenerate) return
@@ -178,6 +189,14 @@ function App() {
 
   const handleConnectTwitter = () => {
     setIsConnectModalOpen(true)
+  }
+
+  const handleLogout = async () => {
+    await api.signOut();
+    setSession(null);
+    setTwitterUser(null);
+    setIsConnected(false);
+    toast.success('Commander logged out.');
   }
 
   const handleCompleteConnect = async (handle: string) => {
@@ -284,7 +303,7 @@ function App() {
         onClose={() => setIsConnectModalOpen(false)}
         onConnect={handleCompleteConnect}
       />
-      <Header onRefresh={handleRefresh} />
+      <Header onRefresh={handleRefresh} onLogout={handleLogout} />
       
       <main className="container mx-auto px-4 py-6 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="flex justify-between items-center mb-6">

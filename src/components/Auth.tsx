@@ -8,7 +8,6 @@ interface AuthProps {
 }
 
 export default function Auth({ onSuccess }: AuthProps) {
-  const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,14 +17,12 @@ export default function Auth({ onSuccess }: AuthProps) {
     setLoading(true)
     
     try {
-      const { error } = isLogin 
-        ? await api.signIn(email, password)
-        : await api.signUp(email, password)
+      const { error } = await api.signIn(email, password)
       
       if (error) {
          toast.error(error.message)
       } else {
-         toast.success(isLogin ? 'Welcome back, Commander!' : 'Empire Account created!')
+         toast.success('Welcome back, Commander!')
          onSuccess()
       }
     } catch (e) {
@@ -87,17 +84,14 @@ export default function Auth({ onSuccess }: AuthProps) {
               disabled={loading}
               className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white rounded-[1.8rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg disabled:opacity-50"
             >
-              {loading ? 'Authenticating...' : (isLogin ? 'Launch Dashboard' : 'Initiate Signup')}
+              {loading ? 'Authenticating...' : 'Launch Dashboard'}
               <ArrowRight className="w-5 h-5" />
             </button>
           </form>
 
-          <button 
-            onClick={() => setIsLogin(!isLogin)}
-            className="w-full mt-8 text-center text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors"
-          >
-            {isLogin ? "Don't have an account? Contact Admin" : "Already have an account? Login"}
-          </button>
+          <div className="w-full mt-8 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-60">
+            Exclusive Commander Access Only
+          </div>
           
           <div className="mt-8 pt-8 border-t border-slate-50 flex items-start gap-3">
              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
