@@ -18,17 +18,38 @@ export interface TwitterUser {
   }
 }
 
+// 🛡️ SENIOR SESSION CACHE (Mitigates 'auth-token lock' race conditions)
+let _cachedUser: any = null;
+let _lastFetch = 0;
+
+const getAuthenticatedUser = async () => {
+    const now = Date.now();
+    if (_cachedUser && (now - _lastFetch < 3000)) {
+        return { user: _cachedUser, error: null };
+    }
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (user) {
+        _cachedUser = user;
+        _lastFetch = now;
+    }
+    return { user, error };
+};
+
 export const api = {
   // Auth & Multi-User Support
   signUp: async (email: string, pass: string) => {
-    return await supabase.auth.signUp({ email, password: pass });
+    const res = await supabase.auth.signUp({ email, password: pass });
+    _cachedUser = null; // Clear cache on change
+    return res;
   },
 
   signIn: async (email: string, pass: string) => {
+    _cachedUser = null;
     return await supabase.auth.signInWithPassword({ email, password: pass });
   },
 
   signOut: async () => {
+    _cachedUser = null;
     return await supabase.auth.signOut();
   },
 
@@ -39,8 +60,8 @@ export const api = {
   // Persistent Settings
   getSettings: async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      const { user, error: userError } = await getAuthenticatedUser();
+      if (userError || !user) return null;
       
       const { data, error } = await supabase
         .from('user_settings')
@@ -60,7 +81,7 @@ export const api = {
   },
 
   updateSettings: async (updates: any) => {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { user, error: userError } = await getAuthenticatedUser();
     if (userError || !user) throw new Error("Cloud Session Expired. Please Login Again.");
     
     // Explicitly create if missing, update if exists
