@@ -202,13 +202,15 @@ function App() {
   const handleCompleteConnect = async (handle: string) => {
     try {
       await api.connectTwitter(handle);
-      // Force a full refresh after DB sync
+      // FIRST: Fetch the full identity
       const authStatus = await api.getAuthStatus();
+      
+      // SECOND: Update the data, THEN the connection state
       setTwitterUser(authStatus.user);
       setIsConnected(true);
       toast.success(`Identity @${handle} Connected! 🚀`);
       
-      // Secondary Re-fetch for stats
+      // THIRD: Deep Sync for stats
       setTimeout(() => {
         handleRefresh();
       }, 500);

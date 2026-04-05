@@ -83,16 +83,23 @@ export const api = {
              listed_count: 0
            }
          }
-       } as { connected: boolean, user: TwitterUser };
+       };
      } catch (e) {
        return { 
          connected: true, 
          user: { 
            id: settings.user_id || 'unknown',
            name: settings.twitter_handle, 
-           username: settings.twitter_handle 
+           username: settings.twitter_handle,
+           profile_image_url: `https://unavatar.io/twitter/${settings.twitter_handle}`,
+           public_metrics: {
+             followers_count: 0,
+             following_count: 0,
+             tweet_count: 0,
+             listed_count: 0
+           }
          } 
-       } as { connected: boolean, user: TwitterUser };
+       };
      }
   },
 
