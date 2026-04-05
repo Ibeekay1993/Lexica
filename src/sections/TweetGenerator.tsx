@@ -33,8 +33,13 @@ export default function TweetGenerator({
   const [isGenerating, setIsGenerating] = useState(false)
   const [synthesisStep, setSynthesisStep] = useState('')
   const [isPosting, setIsPosting] = useState(false)
-  
-  // ... (rest of state)
+  const [showSchedule, setShowSchedule] = useState(false)
+  const [scheduledDate, setScheduledDate] = useState('')
+  const [scheduledTime, setScheduledTime] = useState('')
+
+  const charCount = content.length
+  const maxChars = 280
+  const progress = (charCount / maxChars) * 100
 
   const handleGenerate = () => {
     setIsGenerating(true)
@@ -164,8 +169,10 @@ export default function TweetGenerator({
             disabled={isGenerating}
             className="flex items-center gap-2 px-4 py-2.5 gradient-primary text-white rounded-xl text-sm font-medium transition-all duration-300 hover:shadow-glow hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70"
           >
-            <Zap className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
-            {isGenerating ? 'Generating...' : 'Generate'}
+            <Zap className={`w-4 h-4 ${isGenerating ? 'animate-spin text-amber-300' : ''}`} />
+            <span className="min-w-[100px]">
+              {isGenerating ? (synthesisStep || 'THINKING...') : 'KIMI SYNTHESIS'}
+            </span>
           </button>
         </div>
         
