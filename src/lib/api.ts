@@ -82,7 +82,7 @@ export const api = {
       .select('*')
       .order('created_at', { ascending: false })
     
-    return (data || []).map(t => ({
+    return (data || []).map((t: any) => ({
       id: t.id,
       content: t.content,
       tags: t.tags || [],
@@ -121,7 +121,7 @@ export const api = {
   // Scheduling
   getScheduledTweets: async () => {
     const { data } = await supabase.from('scheduled_tweets').select('*').order('scheduled_at', { ascending: true })
-    return (data || []).map(t => ({
+    return (data || []).map((t: any) => ({
       id: t.id,
       text: t.content,
       scheduledAt: t.scheduled_at,
